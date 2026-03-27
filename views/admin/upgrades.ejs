@@ -1,0 +1,100 @@
+<%- include('../partials/header') %>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">CARD UPGRADE REQUESTS <span class="count-badge"><%= requests.length %></span></div>
+    <div class="superadmin-badge">⭐ SUPER ADMIN ONLY</div>
+  </div>
+
+  <% if (!requests.length) { %>
+  <div class="empty-state">
+    <div class="empty-icon">✓</div>
+    <div class="empty-title">No Pending Requests</div>
+    <div class="empty-sub mono">All card upgrade requests have been processed.</div>
+  </div>
+  <% } else { %>
+  <div class="upgrade-list">
+    <% requests.forEach(p => { %>
+    <div class="upgrade-card">
+      <div class="uc-left">
+        <div class="person-avatar type-<%= p.type %> avatar-lg"><%= p.name[0].toUpperCase() %></div>
+        <div class="uc-info">
+          <div class="uc-name"><%= p.name %></div>
+          <div class="uc-phone mono"><%= p.phone %></div>
+          <span class="badge badge-<%= p.type %>"><%= p.type.toUpperCase() %></span>
+        </div>
+      </div>
+
+      <div class="uc-mid">
+        <div class="uc-field">
+          <span class="uc-label">CURRENT VERSION</span>
+          <span class="uc-val mono">v<%= p.card.version %></span>
+        </div>
+        <div class="uc-arrow">→</div>
+        <div class="uc-field">
+          <span class="uc-label">AFTER UPGRADE</span>
+          <span class="uc-val mono text-green">v<%= p.card.version + 1 %></span>
+        </div>
+        <div class="uc-field">
+          <span class="uc-label">CARD STATUS</span>
+          <span class="badge badge-red">BLOCKED</span>
+        </div>
+        <div class="uc-field">
+          <span class="uc-label">PERSON ID</span>
+          <span class="uc-val mono text-xs"><%= p._id %></span>
+        </div>
+      </div>
+
+      <div class="uc-actions">
+        <a href="/admin/persons/<%= p._id %>" class="btn btn-sm btn-ghost">View Profile</a>
+        <form action="/admin/upgrades/<%= p._id %>/approve" method="POST">
+          <button class="btn btn-sm btn-success" onclick="return confirm('Approve card upgrade for <%= p.name %>? This will increment card version to v<%= p.card.version + 1 %> and unblock the card.')">
+            ✓ Approve Upgrade
+          </button>
+        </form>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+</div>
+
+<!-- Upgrade Flow Explainer -->
+<div class="panel" style="margin-top:20px">
+  <div class="panel-header"><div class="panel-title">CARD UPGRADE FLOW</div></div>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="fs-num">1</div>
+      <div class="fs-body">
+        <div class="fs-title">Card Reported Lost</div>
+        <div class="fs-desc">Admin clicks "Block Card" on the person's profile. Card is blocked and upgrade request is created.</div>
+      </div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="fs-num">2</div>
+      <div class="fs-body">
+        <div class="fs-title">Super Admin Reviews</div>
+        <div class="fs-desc">Super admin sees the pending upgrade request on this page with person details.</div>
+      </div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="fs-num">3</div>
+      <div class="fs-body">
+        <div class="fs-title">Upgrade Approved</div>
+        <div class="fs-desc">Card version increments by 1. Card is unblocked. Old card with old version is now permanently invalid.</div>
+      </div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="fs-num">4</div>
+      <div class="fs-body">
+        <div class="fs-title">New Card Issued</div>
+        <div class="fs-desc">ESP32 operator writes new ObjectId + new version to a fresh RFID card for the person.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

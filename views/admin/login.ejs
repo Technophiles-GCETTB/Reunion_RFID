@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — RFID Reunion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body class="login-body">
+  <div class="login-bg">
+    <div class="login-grid"></div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-left">
+      <div class="login-brand">
+        <div class="brand-icon-lg">⬡</div>
+        <h1 class="login-title">REUNION<br><span>RFID</span></h1>
+        <p class="login-desc">College Reunion Event<br>Access Management System</p>
+      </div>
+      <div class="login-stats">
+        <div class="login-stat"><span class="ls-num">4</span><span class="ls-label">ZONES</span></div>
+        <div class="login-stat"><span class="ls-num">∞</span><span class="ls-label">SCANS</span></div>
+        <div class="login-stat"><span class="ls-num">24/7</span><span class="ls-label">SECURE</span></div>
+      </div>
+    </div>
+
+    <div class="login-right">
+      <div class="login-card">
+        <div class="login-card-header">
+          <div class="lch-tag">ADMIN ACCESS</div>
+          <h2>Sign In</h2>
+          <p>Enter your credentials to continue</p>
+        </div>
+
+        <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form action="/admin/login" method="POST" class="login-form">
+          <div class="form-group">
+            <label for="email">EMAIL ADDRESS</label>
+            <input type="email" id="email" name="email" placeholder="admin@reunion.edu" required autofocus>
+          </div>
+          <div class="form-group">
+            <label for="password">PASSWORD</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">
+            Sign In <span>→</span>
+          </button>
+        </form>
+
+        <div class="login-footer-note">
+          <span class="mono">ESP32 API:</span> POST /api/auth/login
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

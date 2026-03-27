@@ -1,0 +1,248 @@
+<%- include('../partials/header') %>
+
+<div class="admins-layout">
+
+  <!-- LEFT: Admin List -->
+  <div class="admins-main">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">ADMIN ACCOUNTS <span class="count-badge"><%= admins.length %></span></div>
+        <div class="superadmin-badge">⭐ SUPER ADMIN</div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>NAME</th>
+              <th>EMAIL</th>
+              <th>ROLE</th>
+              <th>STATUS</th>
+              <th>CREATED</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!admins.length) { %>
+            <tr><td colspan="6" class="empty-cell">No admin accounts found.</td></tr>
+            <% } %>
+            <% admins.forEach(a => { %>
+            <tr class="<%= !a.isActive ? 'row-blocked' : '' %>">
+              <td>
+                <div class="person-name-cell">
+                  <div class="admin-avatar-sm role-<%= a.role %>">
+                    <%= a.name[0].toUpperCase() %>
+                  </div>
+                  <div>
+                    <div class="fw-600">
+                      <%= a.name %>
+                      <% if (a._id.toString() === currentAdminId) { %>
+                      <span class="you-badge">YOU</span>
+                      <% } %>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="mono text-xs"><%= a.email %></td>
+              <td>
+                <% if (a.role === 'superadmin') { %>
+                <span class="badge badge-warn">⭐ SUPERADMIN</span>
+                <% } else { %>
+                <span class="badge badge-student">ADMIN</span>
+                <% } %>
+              </td>
+              <td>
+                <span class="status-badge status-<%= a.isActive ? 'active' : 'inactive' %>">
+                  <%= a.isActive ? 'ACTIVE' : 'INACTIVE' %>
+                </span>
+              </td>
+              <td class="mono text-xs text-muted"><%= new Date(a.createdAt).toLocaleDateString() %></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn btn-xs btn-ghost"
+                          onclick="openEditModal('<%= a._id %>')">Edit</button>
+
+                  <% if (a._id.toString() !== currentAdminId) { %>
+                  <form action="/admin/admins/<%= a._id %>/toggle" method="POST" style="display:inline">
+                    <button class="btn btn-xs <%= a.isActive ? 'btn-danger' : 'btn-success' %>">
+                      <%= a.isActive ? 'Deactivate' : 'Activate' %>
+                    </button>
+                  </form>
+
+                  <form action="/admin/admins/<%= a._id %>/delete" method="POST" style="display:inline"
+                        onsubmit="return confirm('Permanently delete <%= a.name %>? This cannot be undone.')">
+                    <button class="btn btn-xs btn-danger">Delete</button>
+                  </form>
+                  <% } else { %>
+                  <span class="text-muted text-xs mono">— self</span>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Add + Change Password -->
+  <div class="admins-side">
+
+    <!-- Add Admin -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">⊕ ADD NEW ADMIN</div>
+      </div>
+      <form action="/admin/admins/create" method="POST" style="padding:20px">
+        <div class="form-group" style="margin-bottom:13px">
+          <label>FULL NAME *</label>
+          <input type="text" name="name" placeholder="Full name" required>
+        </div>
+        <div class="form-group" style="margin-bottom:13px">
+          <label>EMAIL ADDRESS *</label>
+          <input type="email" name="email" placeholder="admin@reunion.edu" required>
+        </div>
+        <div class="form-group" style="margin-bottom:13px">
+          <label>PASSWORD * <span class="text-muted mono" style="font-size:9px">(min 6 chars)</span></label>
+          <input type="password" name="password" placeholder="••••••••" required minlength="6">
+        </div>
+        <div class="form-group" style="margin-bottom:13px">
+          <label>CONFIRM PASSWORD *</label>
+          <input type="password" name="confirmPassword" placeholder="••••••••" required>
+        </div>
+        <div class="form-group" style="margin-bottom:18px">
+          <label>ROLE</label>
+          <select name="role">
+            <option value="admin">Admin</option>
+            <option value="superadmin">Super Admin</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">⊕ Create Admin</button>
+      </form>
+    </div>
+
+    <!-- Change Own Password -->
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-header">
+        <div class="panel-title">🔑 CHANGE MY PASSWORD</div>
+      </div>
+      <form action="/admin/admins/change-password" method="POST" style="padding:20px">
+        <div class="form-group" style="margin-bottom:13px">
+          <label>CURRENT PASSWORD</label>
+          <input type="password" name="currentPassword" placeholder="••••••••" required>
+        </div>
+        <div class="form-group" style="margin-bottom:13px">
+          <label>NEW PASSWORD</label>
+          <input type="password" name="newPassword" placeholder="••••••••" required minlength="6">
+        </div>
+        <div class="form-group" style="margin-bottom:18px">
+          <label>CONFIRM NEW PASSWORD</label>
+          <input type="password" name="confirmPassword" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-ghost btn-full">Update Password</button>
+      </form>
+    </div>
+
+    <!-- Security notes -->
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-header"><div class="panel-title">SECURITY RULES</div></div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:9px;font-size:12px;color:var(--text-2);line-height:1.5">
+        <div>🔒 You cannot delete or deactivate your own account.</div>
+        <div>⭐ At least one Super Admin must exist at all times.</div>
+        <div>🚫 You cannot change your own role.</div>
+        <div>🔑 Passwords are hashed with bcrypt (cost 12).</div>
+        <div>⏱ Sessions expire after 24 hours of inactivity.</div>
+        <div>📋 All admin actions are tied to session identity.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Admin Modal ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="editModal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">EDIT ADMIN</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <form id="editForm" method="POST" style="padding:20px">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px">
+        <div class="form-group">
+          <label>FULL NAME *</label>
+          <input type="text" name="name" id="edit_name" required>
+        </div>
+        <div class="form-group">
+          <label>EMAIL *</label>
+          <input type="email" name="email" id="edit_email" required>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:13px">
+        <div class="form-group">
+          <label>ROLE</label>
+          <select name="role" id="edit_role">
+            <option value="admin">Admin</option>
+            <option value="superadmin">Super Admin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>STATUS</label>
+          <label class="toggle" style="margin-top:8px">
+            <input type="checkbox" name="isActive" id="edit_isActive">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-divider">
+        <span>CHANGE PASSWORD <span class="text-muted">(leave blank to keep current)</span></span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div class="form-group">
+          <label>NEW PASSWORD</label>
+          <input type="password" name="newPassword" id="edit_password" placeholder="Leave blank to keep" minlength="6">
+        </div>
+        <div class="form-group">
+          <label>CONFIRM PASSWORD</label>
+          <input type="password" name="confirmPassword" id="edit_confirmPassword" placeholder="Repeat new password">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="flex:1">Save Changes →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+async function openEditModal(id) {
+  const res  = await fetch('/admin/admins/' + id);
+  const data = await res.json();
+  if (!data.success) return alert('Failed to load admin data');
+  const a = data.data;
+
+  document.getElementById('edit_name').value       = a.name;
+  document.getElementById('edit_email').value      = a.email;
+  document.getElementById('edit_role').value       = a.role;
+  document.getElementById('edit_isActive').checked = a.isActive;
+  document.getElementById('edit_password').value        = '';
+  document.getElementById('edit_confirmPassword').value = '';
+  document.getElementById('editForm').action = '/admin/admins/' + id + '/update';
+  document.getElementById('editModal').classList.add('modal-open');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('modal-open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('editModal')) closeEditModal();
+}
+</script>
+
+<%- include('../partials/footer') %>

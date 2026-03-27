@@ -1,0 +1,95 @@
+<%- include('../partials/header') %>
+
+<div class="panel" style="margin-bottom:16px">
+  <div class="panel-header">
+    <div class="panel-title">IMPORT REPORT</div>
+    <div class="mono" style="font-size:11px;color:var(--text-2)"><%= new Date(importRecord.createdAt).toLocaleString() %></div>
+  </div>
+
+  <!-- Summary stats -->
+  <div class="import-result-stats">
+    <div class="irs-card irs-total">
+      <div class="irs-val"><%= importRecord.totalRows %></div>
+      <div class="irs-label">TOTAL ROWS</div>
+    </div>
+    <div class="irs-card irs-success">
+      <div class="irs-val text-green"><%= importRecord.successCount %></div>
+      <div class="irs-label">IMPORTED</div>
+    </div>
+    <div class="irs-card irs-failed">
+      <div class="irs-val text-red"><%= importRecord.failedCount %></div>
+      <div class="irs-label">FAILED</div>
+    </div>
+    <div class="irs-card irs-skipped">
+      <div class="irs-val text-warn"><%= importRecord.skippedCount %></div>
+      <div class="irs-label">SKIPPED</div>
+    </div>
+  </div>
+</div>
+
+<!-- Results table -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">ROW-BY-ROW RESULTS</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-xs btn-ghost" onclick="filterRows('all')">All</button>
+      <button class="btn btn-xs btn-success" onclick="filterRows('success')">✓ Success</button>
+      <button class="btn btn-xs btn-danger" onclick="filterRows('failed')">✗ Failed</button>
+      <button class="btn btn-xs btn-ghost" onclick="filterRows('skipped')">⟳ Skipped</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table" id="resultsTable">
+      <thead>
+        <tr>
+          <th>ROW</th>
+          <th>STATUS</th>
+          <th>NAME</th>
+          <th>PHONE</th>
+          <th>REASON / ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% importRecord.results.forEach(r => { %>
+        <tr class="result-row" data-status="<%= r.status %>">
+          <td class="mono">#<%= r.row %></td>
+          <td>
+            <% if (r.status === 'success') { %>
+            <span class="badge badge-green">✓ SUCCESS</span>
+            <% } else if (r.status === 'failed') { %>
+            <span class="badge badge-red">✗ FAILED</span>
+            <% } else { %>
+            <span class="badge badge-warn">⟳ SKIPPED</span>
+            <% } %>
+          </td>
+          <td class="fw-600"><%= r.name || '—' %></td>
+          <td class="mono"><%= r.phone || '—' %></td>
+          <td>
+            <% if (r.status === 'success' && r.personId) { %>
+            <a href="/admin/persons/<%= r.personId %>" class="mono text-xs text-green"><%= r.personId %></a>
+            <% } else { %>
+            <span class="text-muted text-xs"><%= r.reason || '—' %></span>
+            <% } %>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="display:flex;gap:10px;margin-top:16px">
+  <a href="/admin/bulk-import" class="btn btn-ghost">← New Import</a>
+  <a href="/admin/persons" class="btn btn-primary">View All Persons →</a>
+</div>
+
+<script>
+function filterRows(status) {
+  document.querySelectorAll('.result-row').forEach(row => {
+    row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
+  });
+}
+</script>
+
+<%- include('../partials/footer') %>

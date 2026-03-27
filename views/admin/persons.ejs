@@ -1,0 +1,127 @@
+<%- include('../partials/header') %>
+
+<div class="toolbar">
+  <form class="search-form" method="GET" action="/admin/persons">
+    <input type="text" name="search" placeholder="Search name or phone..." value="<%= query.search || '' %>">
+    <select name="type">
+      <option value="">All Types</option>
+      <option value="alumni"   <%= query.type === 'alumni'   ? 'selected' : '' %>>Alumni</option>
+      <option value="student"  <%= query.type === 'student'  ? 'selected' : '' %>>Student</option>
+      <option value="teacher"  <%= query.type === 'teacher'  ? 'selected' : '' %>>Teacher</option>
+      <option value="guest"    <%= query.type === 'guest'    ? 'selected' : '' %>>Guest</option>
+    </select>
+    <select name="status">
+      <option value="">All Status</option>
+      <option value="active"   <%= query.status === 'active'   ? 'selected' : '' %>>Active</option>
+      <option value="inactive" <%= query.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+    </select>
+    <button type="submit" class="btn btn-sm">Filter</button>
+    <a href="/admin/persons" class="btn btn-sm btn-ghost">Clear</a>
+  </form>
+  <a href="/admin/persons/add" class="btn btn-primary">+ Add Person</a>
+</div>
+
+<% if (writerModule) { %>
+<div class="writer-hint-bar">
+  <span class="whb-icon">✏️</span>
+  <span>Writer machine <strong><%= writerModule.name %></strong> is active —
+    click any <span class="whb-id-sample mono">ObjectId ✏️</span>
+    to open the writer with that person pre-filled.</span>
+</div>
+<% } %>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">REGISTERED PERSONS <span class="count-badge"><%= persons.length %></span></div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>NAME</th>
+          <th>TYPE</th>
+          <th>PHONE</th>
+          <th>CARD</th>
+          <th>PERMISSIONS</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!persons.length) { %>
+        <tr><td colspan="7" class="empty-cell">No persons found.</td></tr>
+        <% } %>
+        <% persons.forEach(p => { %>
+        <%
+          var writerIp  = writerModule ? writerModule.ip.replace(/^https?:\/\//, '') : null;
+          var writerUrl = writerIp
+            ? 'http://' + writerIp + '/write?id=' + p._id + '&version=' + p.card.version
+            : null;
+        %>
+        <tr class="<%= p.card.isBlocked ? 'row-blocked' : '' %>">
+          <td>
+            <div class="person-name-cell">
+              <div class="person-avatar type-<%= p.type %>"><%= p.name[0].toUpperCase() %></div>
+              <div>
+                <div class="fw-600"><%= p.name %></div>
+                <% if (writerUrl) { %>
+                <a href="<%= writerUrl %>" target="_blank"
+                   class="obj-id-link mono text-xs"
+                   title="Open writer — ID will be pre-filled">
+                  <%= p._id %> <span class="obj-id-pencil">✏️</span>
+                </a>
+                <% } else { %>
+                <span class="text-muted mono text-xs"><%= p._id %></span>
+                <% } %>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge badge-<%= p.type %>"><%= p.type.toUpperCase() %></span></td>
+          <td class="mono"><%= p.phone %></td>
+          <td>
+            <div class="card-cell">
+              <span class="mono">v<%= p.card.version %></span>
+              <% if (p.card.isBlocked) { %><span class="badge badge-red">BLOCKED</span><% } %>
+              <% if (p.card.pendingUpgrade) { %><span class="badge badge-warn">UPGRADE</span><% } %>
+            </div>
+          </td>
+          <td>
+            <div class="perm-pills">
+              <% ['food','cultural','vip','entry'].forEach(function(z) { %>
+              <% if (p.permissions && p.permissions[z]) { %>
+              <span class="perm-pill <%= p.permissions[z].allowed ? 'perm-on' : 'perm-off' %>"
+                    title="<%= z %>: <%= p.permissions[z].used %>/<%= p.permissions[z].limit %>">
+                <%= z[0].toUpperCase() %>
+              </span>
+              <% } %>
+              <% }); %>
+            </div>
+          </td>
+          <td>
+            <span class="status-badge status-<%= p.status %>"><%= p.status.toUpperCase() %></span>
+          </td>
+          <td>
+            <div class="action-group">
+              <a href="/admin/persons/<%= p._id %>" class="btn btn-xs">View</a>
+              <a href="/admin/persons/<%= p._id %>/edit" class="btn btn-xs btn-ghost">Edit</a>
+              <% if (!p.card.isBlocked) { %>
+              <form action="/admin/persons/<%= p._id %>/block" method="POST" style="display:inline">
+                <button class="btn btn-xs btn-danger"
+                        onclick="return confirm('Block this card and request upgrade?')">Block</button>
+              </form>
+              <% } else { %>
+              <form action="/admin/persons/<%= p._id %>/unblock" method="POST" style="display:inline">
+                <button class="btn btn-xs btn-success">Unblock</button>
+              </form>
+              <% } %>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

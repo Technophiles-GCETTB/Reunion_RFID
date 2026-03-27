@@ -1,0 +1,233 @@
+<%- include('../partials/header') %>
+
+<% if (error) { %>
+<div class="alert alert-error" style="margin-bottom:16px"><%= error %></div>
+<% } %>
+
+<div class="zones-layout">
+
+  <!-- Add Zone Panel -->
+  <div class="panel zone-form-panel">
+    <div class="panel-header">
+      <div class="panel-title" id="formTitle">ADD NEW ZONE</div>
+    </div>
+    <form id="zoneForm" action="/admin/zones" method="POST" class="main-form" style="padding:20px">
+      <input type="hidden" id="formMode" value="add">
+      <input type="hidden" id="editZoneId" name="_zoneId" value="">
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>ZONE CODE *</label>
+        <input type="text" name="code" id="fieldCode" placeholder="e.g. food, vip, workshop_a" required
+               pattern="[a-z0-9_]+" title="Lowercase letters, numbers, underscores only">
+        <div style="font-size:10px;color:var(--text-3);margin-top:4px;font-family:monospace">Lowercase, no spaces. Used in scan API.</div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>DISPLAY NAME *</label>
+        <input type="text" name="name" id="fieldName" placeholder="e.g. Food Zone" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>DESCRIPTION</label>
+        <input type="text" name="description" id="fieldDesc" placeholder="Brief description...">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div class="form-group">
+          <label>ICON (emoji)</label>
+          <input type="text" name="icon" id="fieldIcon" placeholder="🍽️" maxlength="4">
+        </div>
+        <div class="form-group">
+          <label>COLOR</label>
+          <input type="color" name="color" id="fieldColor" value="#3b82f6" style="height:40px;padding:4px 8px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;width:100%">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div class="form-group">
+          <label>DEFAULT LIMIT</label>
+          <input type="number" name="defaultLimit" id="fieldLimit" value="1" min="1" max="99">
+        </div>
+        <div class="form-group" style="justify-content:flex-end">
+          <label>DEFAULT ALLOWED</label>
+          <label class="toggle" style="margin-top:8px">
+            <input type="checkbox" name="defaultAllowed" id="fieldAllowed" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:20px">
+        <label>SCANNER IDs (comma-separated)</label>
+        <input type="text" name="scannerIds" id="fieldScanners" placeholder="ESP8266_GATE_A, ESP8266_GATE_B">
+        <div style="font-size:10px;color:var(--text-3);margin-top:4px;font-family:monospace">Optional. For documentation only.</div>
+      </div>
+
+      <!-- Edit-mode extras -->
+      <div id="editExtras" style="display:none;margin-bottom:14px">
+        <div class="form-group">
+          <label>STATUS</label>
+          <label class="toggle">
+            <input type="checkbox" name="isActive" id="fieldActive" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-primary" style="flex:1" id="submitBtn">Add Zone</button>
+        <button type="button" class="btn btn-ghost" id="cancelEditBtn" style="display:none" onclick="resetForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Zones List -->
+  <div class="zones-list-col">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">ALL ZONES <span class="count-badge"><%= zones.length %></span></div>
+        <div class="superadmin-badge">⭐ SUPER ADMIN</div>
+      </div>
+
+      <% if (!zones.length) { %>
+      <div class="empty-state" style="padding:40px">
+        <div class="empty-icon">◐</div>
+        <div class="empty-title">No Zones Yet</div>
+        <div class="empty-sub mono">Add your first zone using the form.</div>
+      </div>
+      <% } %>
+
+      <div class="zone-cards-grid">
+        <% zones.forEach(z => { %>
+        <div class="zone-mgmt-card <%= z.isActive ? '' : 'zone-inactive' %>">
+          <div class="zmc-top">
+            <div class="zmc-icon" style="background:<%= z.color %>22;color:<%= z.color %>"><%= z.icon %></div>
+            <div class="zmc-info">
+              <div class="zmc-name"><%= z.name %></div>
+              <div class="zmc-code mono"><%= z.code %></div>
+            </div>
+            <div class="zmc-status">
+              <% if (z.isActive) { %>
+              <span class="status-badge status-active">ACTIVE</span>
+              <% } else { %>
+              <span class="status-badge status-inactive">OFF</span>
+              <% } %>
+            </div>
+          </div>
+
+          <% if (z.description) { %>
+          <div class="zmc-desc"><%= z.description %></div>
+          <% } %>
+
+          <div class="zmc-meta">
+            <span class="zmc-pill">Default limit: <strong><%= z.defaultLimit %></strong></span>
+            <span class="zmc-pill"><%= z.defaultAllowed ? '✓ Allowed by default' : '✗ Denied by default' %></span>
+            <% if (z.scannerIds && z.scannerIds.length) { %>
+            <span class="zmc-pill"><%= z.scannerIds.length %> scanner(s)</span>
+            <% } %>
+          </div>
+
+          <div class="zmc-actions">
+            <button class="btn btn-xs btn-ghost" onclick="editZone('<%= z._id %>')">Edit</button>
+
+            <form action="/admin/zones/<%= z._id %>/toggle" method="POST" style="display:inline">
+              <button class="btn btn-xs <%= z.isActive ? 'btn-danger' : 'btn-success' %>">
+                <%= z.isActive ? 'Deactivate' : 'Activate' %>
+              </button>
+            </form>
+
+            <% const coreCodes = ['entry','food','cultural','vip']; %>
+            <% if (!coreCodes.includes(z.code)) { %>
+            <form action="/admin/zones/<%= z._id %>/delete" method="POST" style="display:inline"
+                  onsubmit="return confirm('Delete zone <%= z.name %>? This cannot be undone.')">
+              <button class="btn btn-xs btn-danger">Delete</button>
+            </form>
+            <% } else { %>
+            <span class="zmc-core-badge">CORE</span>
+            <% } %>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-header"><div class="panel-title">HOW ZONES WORK</div></div>
+      <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <div class="flow-step" style="align-items:flex-start">
+          <div class="fs-num">1</div>
+          <div class="fs-body">
+            <div class="fs-title">Create a Zone</div>
+            <div class="fs-desc">Set a unique code (e.g. <code class="mono">workshop_a</code>), name, icon and default limits.</div>
+          </div>
+        </div>
+        <div class="flow-step" style="align-items:flex-start">
+          <div class="fs-num">2</div>
+          <div class="fs-body">
+            <div class="fs-title">Assign Permissions</div>
+            <div class="fs-desc">When editing a person, the new zone appears in their permissions panel automatically.</div>
+          </div>
+        </div>
+        <div class="flow-step" style="align-items:flex-start">
+          <div class="fs-num">3</div>
+          <div class="fs-body">
+            <div class="fs-title">Configure ESP8266</div>
+            <div class="fs-desc">Set <code class="mono">ZONE_CODE = "workshop_a"</code> on the scanner for that gate.</div>
+          </div>
+        </div>
+        <div class="flow-step" style="align-items:flex-start">
+          <div class="fs-num">4</div>
+          <div class="fs-body">
+            <div class="fs-title">Deactivate When Done</div>
+            <div class="fs-desc">Deactivating a zone rejects all scans for it without deleting any data.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function editZone(id) {
+  const res  = await fetch('/admin/zones/' + id);
+  const data = await res.json();
+  if (!data.success) return alert('Failed to load zone');
+  const z = data.data;
+
+  document.getElementById('formTitle').textContent    = 'EDIT ZONE — ' + z.code.toUpperCase();
+  document.getElementById('formMode').value           = 'edit';
+  document.getElementById('editZoneId').value         = id;
+  document.getElementById('fieldCode').value          = z.code;
+  document.getElementById('fieldCode').readOnly       = true;
+  document.getElementById('fieldName').value          = z.name;
+  document.getElementById('fieldDesc').value          = z.description || '';
+  document.getElementById('fieldIcon').value          = z.icon || '';
+  document.getElementById('fieldColor').value         = z.color || '#3b82f6';
+  document.getElementById('fieldLimit').value         = z.defaultLimit;
+  document.getElementById('fieldAllowed').checked     = z.defaultAllowed;
+  document.getElementById('fieldScanners').value      = (z.scannerIds || []).join(', ');
+  document.getElementById('fieldActive').checked      = z.isActive;
+  document.getElementById('editExtras').style.display = 'block';
+  document.getElementById('submitBtn').textContent    = 'Save Changes';
+  document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+
+  // Change form action to update endpoint
+  document.getElementById('zoneForm').action = '/admin/zones/' + id + '/update';
+
+  document.querySelector('.zone-form-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetForm() {
+  document.getElementById('formTitle').textContent       = 'ADD NEW ZONE';
+  document.getElementById('formMode').value              = 'add';
+  document.getElementById('zoneForm').reset();
+  document.getElementById('zoneForm').action             = '/admin/zones';
+  document.getElementById('fieldCode').readOnly          = false;
+  document.getElementById('editExtras').style.display    = 'none';
+  document.getElementById('submitBtn').textContent       = 'Add Zone';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+}
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,177 @@
+<%- include('../partials/header') %>
+
+<div class="zones-layout">
+
+  <!-- LEFT: Add / Edit Form -->
+  <div class="panel zone-form-panel">
+    <div class="panel-header">
+      <div class="panel-title" id="wmFormTitle">ADD WRITER MODULE</div>
+    </div>
+    <form id="wmForm" action="/admin/writer-modules/create" method="POST" style="padding:20px">
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>MODULE NAME *</label>
+        <input type="text" name="name" id="wm_name" placeholder="e.g. Gate A Writer, Lab Writer 1" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>IP ADDRESS *</label>
+        <input type="text" name="ip" id="wm_ip"
+               placeholder="e.g. 192.168.1.50 or http://192.168.1.50" required>
+        <div style="font-size:10px;color:var(--text-3);margin-top:4px;font-family:monospace">
+          The local IP of the ESP8266 writer device on your network.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>ASSIGN TO ADMIN</label>
+        <select name="assignedTo" id="wm_assignedTo">
+          <option value="">— Unassigned —</option>
+          <% admins.forEach(a => { %>
+          <option value="<%= a._id %>"
+            <%= assignedAdminIds.includes(a._id.toString()) ? 'disabled' : '' %>>
+            <%= a.name %> (<%= a.role %>)
+            <%= assignedAdminIds.includes(a._id.toString()) ? '— already assigned' : '' %>
+          </option>
+          <% }) %>
+        </select>
+        <div style="font-size:10px;color:var(--text-3);margin-top:4px;font-family:monospace">
+          Each admin can have maximum one machine.
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:14px">
+        <label>NOTES</label>
+        <input type="text" name="notes" id="wm_notes" placeholder="Location or description...">
+      </div>
+
+      <!-- Edit-only: active toggle -->
+      <div id="wm_editExtras" style="display:none;margin-bottom:14px">
+        <div class="form-group">
+          <label>STATUS</label>
+          <label class="toggle">
+            <input type="checkbox" name="isActive" id="wm_isActive" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-primary" style="flex:1" id="wmSubmitBtn">Add Module</button>
+        <button type="button" class="btn btn-ghost" id="wmCancelBtn" style="display:none" onclick="resetWmForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- RIGHT: Module List -->
+  <div class="zones-list-col">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">WRITER MODULES <span class="count-badge"><%= modules.length %></span></div>
+        <div class="superadmin-badge">⭐ SUPER ADMIN</div>
+      </div>
+
+      <% if (!modules.length) { %>
+      <div class="empty-state" style="padding:40px">
+        <div class="empty-icon">✏️</div>
+        <div class="empty-title">No Writer Modules Yet</div>
+        <div class="empty-sub mono">Add your first ESP8266 writer using the form.</div>
+      </div>
+      <% } %>
+
+      <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+        <% modules.forEach(m => { %>
+        <div class="wm-card <%= m.isActive ? '' : 'zone-inactive' %>">
+          <div class="wm-top">
+            <div class="wm-icon <%= m.isActive ? 'wm-icon-on' : 'wm-icon-off' %>">✏️</div>
+            <div class="wm-info">
+              <div class="wm-name"><%= m.name %></div>
+              <div class="wm-ip mono"><%= m.ip %></div>
+              <% if (m.notes) { %><div class="wm-notes"><%= m.notes %></div><% } %>
+            </div>
+            <span class="status-badge status-<%= m.isActive ? 'active' : 'inactive' %>">
+              <%= m.isActive ? 'ONLINE' : 'OFF' %>
+            </span>
+          </div>
+
+          <div class="wm-assigned">
+            <% if (m.assignedTo) { %>
+            <div class="wm-admin-chip">
+              <div class="admin-avatar-sm role-<%= m.assignedTo.role %>" style="width:24px;height:24px;font-size:10px">
+                <%= m.assignedTo.name[0].toUpperCase() %>
+              </div>
+              <span><%= m.assignedTo.name %></span>
+              <span class="badge badge-<%= m.assignedTo.role === 'superadmin' ? 'warn' : 'student' %> badge-xs">
+                <%= m.assignedTo.role %>
+              </span>
+            </div>
+            <% } else { %>
+            <div class="wm-unassigned mono">— unassigned —</div>
+            <% } %>
+          </div>
+
+          <div class="wm-actions">
+            <a href="http://<%= m.ip.replace(/^https?:\/\//,'') %>" target="_blank"
+               class="btn btn-xs btn-ghost">↗ Open Writer</a>
+            <button class="btn btn-xs btn-ghost"
+                    onclick="editWmModal('<%= m._id %>')">Edit</button>
+            <form action="/admin/writer-modules/<%= m._id %>/toggle" method="POST" style="display:inline">
+              <button class="btn btn-xs <%= m.isActive ? 'btn-danger' : 'btn-success' %>">
+                <%= m.isActive ? 'Deactivate' : 'Activate' %>
+              </button>
+            </form>
+            <form action="/admin/writer-modules/<%= m._id %>/delete" method="POST" style="display:inline"
+                  onsubmit="return confirm('Delete <%= m.name %>?')">
+              <button class="btn btn-xs btn-danger">Delete</button>
+            </form>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Info box -->
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-header"><div class="panel-title">HOW WRITER MODULES WORK</div></div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--text-2);line-height:1.6">
+        <div>✏️ A <strong>Writer Module</strong> is the ESP8266 web server running the RFID writer sketch.</div>
+        <div>🔗 Enter its <strong>local IP address</strong> as shown in the Arduino Serial Monitor.</div>
+        <div>👤 Assign it to one admin — that admin sees a <strong>"Writer Machine"</strong> button in their sidebar.</div>
+        <div>🪪 When an admin clicks any <strong>MongoDB ObjectId</strong> in the Persons list, it opens the writer at <code class="mono">&lt;ip&gt;/write?id=&lt;objectId&gt;&version=1</code>.</div>
+        <div>📡 The writer page auto-fills the ID and version fields so the operator just scans the card.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function editWmModal(id) {
+  const res  = await fetch('/admin/writer-modules/' + id);
+  const data = await res.json();
+  if (!data.success) return alert('Failed to load module');
+  const m = data.data;
+
+  document.getElementById('wmFormTitle').textContent   = 'EDIT MODULE — ' + m.name.toUpperCase();
+  document.getElementById('wm_name').value             = m.name;
+  document.getElementById('wm_ip').value               = m.ip;
+  document.getElementById('wm_assignedTo').value       = m.assignedTo?._id || m.assignedTo || '';
+  document.getElementById('wm_notes').value            = m.notes || '';
+  document.getElementById('wm_isActive').checked       = m.isActive;
+  document.getElementById('wm_editExtras').style.display = 'block';
+  document.getElementById('wmSubmitBtn').textContent   = 'Save Changes';
+  document.getElementById('wmCancelBtn').style.display = 'inline-flex';
+  document.getElementById('wmForm').action = '/admin/writer-modules/' + id + '/update';
+  document.querySelector('.zone-form-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetWmForm() {
+  document.getElementById('wmFormTitle').textContent      = 'ADD WRITER MODULE';
+  document.getElementById('wmForm').reset();
+  document.getElementById('wmForm').action                = '/admin/writer-modules/create';
+  document.getElementById('wm_editExtras').style.display  = 'none';
+  document.getElementById('wmSubmitBtn').textContent      = 'Add Module';
+  document.getElementById('wmCancelBtn').style.display    = 'none';
+}
+</script>
+
+<%- include('../partials/footer') %>

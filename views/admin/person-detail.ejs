@@ -1,0 +1,162 @@
+<%- include('../partials/header') %>
+
+<div class="detail-layout">
+  <!-- Left: Person Card -->
+  <div class="detail-left">
+    <div class="person-profile-card">
+      <div class="ppc-avatar type-<%= person.type %>">
+        <%= person.name[0].toUpperCase() %>
+      </div>
+      <div class="ppc-name"><%= person.name %></div>
+      <div class="ppc-type"><span class="badge badge-<%= person.type %>"><%= person.type.toUpperCase() %></span></div>
+      <div class="ppc-phone mono"><%= person.phone %></div>
+      <% if (person.meta.address) { %><div class="ppc-addr"><%= person.meta.address %></div><% } %>
+
+      <div class="ppc-actions">
+        <a href="/admin/persons/<%= person._id %>/edit" class="btn btn-sm btn-full">Edit Profile</a>
+        <% if (!person.card.isBlocked) { %>
+        <form action="/admin/persons/<%= person._id %>/block" method="POST">
+          <button class="btn btn-sm btn-danger btn-full" onclick="return confirm('Block card and request upgrade?')">Block Card</button>
+        </form>
+        <% } else { %>
+        <form action="/admin/persons/<%= person._id %>/unblock" method="POST">
+          <button class="btn btn-sm btn-success btn-full">Unblock Card</button>
+        </form>
+        <% } %>
+        <form action="/admin/persons/<%= person._id %>/reset" method="POST">
+          <button class="btn btn-sm btn-ghost btn-full" onclick="return confirm('Reset all usage counts to 0?')">Reset Usage</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Card Info Box -->
+    <% var detailWriterIp = writerModule ? writerModule.ip.replace(/^https?:\/\//, '') : null;
+       var detailWriterUrl = detailWriterIp
+         ? 'http://' + detailWriterIp + '/write?id=' + person._id + '&version=' + person.card.version
+         : null; %>
+    <div class="info-box">
+      <div class="ib-title">RFID CARD DATA</div>
+      <div class="ib-row">
+        <span class="ib-label">ObjectId</span>
+        <% if (detailWriterUrl) { %>
+        <a href="<%= detailWriterUrl %>" target="_blank"
+           class="ib-val mono text-xs obj-id-link"
+           title="Open writer with this ID pre-filled">
+          <%= person._id %> <span class="obj-id-pencil">✏️</span>
+        </a>
+        <% } else { %>
+        <span class="ib-val mono text-xs"><%= person._id %></span>
+        <% } %>
+      </div>
+      <div class="ib-row">
+        <span class="ib-label">Version</span>
+        <span class="ib-val mono">v<%= person.card.version %></span>
+      </div>
+      <div class="ib-row">
+        <span class="ib-label">Blocked</span>
+        <span class="ib-val"><%= person.card.isBlocked ? '🔴 Yes' : '🟢 No' %></span>
+      </div>
+      <div class="ib-row">
+        <span class="ib-label">Pending Upgrade</span>
+        <span class="ib-val"><%= person.card.pendingUpgrade ? '🟡 Yes' : 'No' %></span>
+      </div>
+      <div class="ib-row">
+        <span class="ib-label">Issued</span>
+        <span class="ib-val mono text-xs"><%= new Date(person.card.issuedAt).toLocaleDateString() %></span>
+      </div>
+    </div>
+
+    <!-- Host/Guest Info -->
+    <% if (person.broughtBy) { %>
+    <div class="info-box">
+      <div class="ib-title">HOST</div>
+      <div class="ib-row">
+        <span class="ib-label">Name</span>
+        <span class="ib-val"><a href="/admin/persons/<%= person.broughtBy._id %>"><%= person.broughtBy.name %></a></span>
+      </div>
+      <div class="ib-row">
+        <span class="ib-label">Phone</span>
+        <span class="ib-val mono"><%= person.broughtBy.phone %></span>
+      </div>
+    </div>
+    <% } %>
+
+    <% if (person.guests && person.guests.length) { %>
+    <div class="info-box">
+      <div class="ib-title">GUESTS (<%= person.guests.length %>)</div>
+      <% person.guests.forEach(g => { %>
+      <div class="ib-row">
+        <a href="/admin/persons/<%= g._id %>" class="ib-val"><%= g.name %></a>
+        <span class="badge badge-<%= g.status %>" style="font-size:10px"><%= g.status %></span>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Right: Permissions + Logs -->
+  <div class="detail-right">
+    <!-- Permissions -->
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">ZONE PERMISSIONS</div></div>
+      <div class="perm-detail-grid">
+        <% const zones = ['food','cultural','vip','entry'];
+           const icons = { food:'🍽️', cultural:'🎭', vip:'⭐', entry:'🚪' };
+        %>
+        <% zones.forEach(z => { const p = person.permissions[z]; %>
+        <div class="pd-card <%= p.allowed ? 'pd-allowed' : 'pd-denied' %>">
+          <div class="pd-header">
+            <span><%= icons[z] %> <%= z.toUpperCase() %></span>
+            <span class="pd-status"><%= p.allowed ? 'ALLOWED' : 'DENIED' %></span>
+          </div>
+          <% if (p.allowed) { %>
+          <div class="pd-usage">
+            <div class="pd-bar-wrap">
+              <div class="pd-bar" style="width:<%= p.limit > 0 ? Math.min(p.used/p.limit*100, 100).toFixed(0) : 0 %>%"></div>
+            </div>
+            <div class="pd-nums mono"><%= p.used %> / <%= p.limit %> uses</div>
+          </div>
+          <% } %>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Recent Scan Logs -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">RECENT SCAN HISTORY</div>
+        <a href="/admin/logs" class="panel-action">All Logs →</a>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>STATUS</th>
+              <th>ZONE</th>
+              <th>SCANNER</th>
+              <th>REASON</th>
+              <th>TIME</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!logs.length) { %>
+            <tr><td colspan="5" class="empty-cell">No scans recorded for this person.</td></tr>
+            <% } %>
+            <% logs.forEach(log => { %>
+            <tr>
+              <td><span class="badge <%= log.status === 'GRANTED' ? 'badge-green' : 'badge-red' %>"><%= log.status %></span></td>
+              <td class="mono"><%= log.zoneCode.toUpperCase() %></td>
+              <td class="mono text-xs"><%= log.scannerId %></td>
+              <td class="text-muted text-xs"><%= log.reason || '—' %></td>
+              <td class="mono text-xs"><%= new Date(log.timestamp).toLocaleString() %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

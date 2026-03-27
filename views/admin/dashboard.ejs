@@ -1,0 +1,135 @@
+<%- include('../partials/header') %>
+
+<!-- Stat Cards -->
+<div class="stats-grid">
+  <div class="stat-card stat-blue">
+    <div class="stat-icon">◉</div>
+    <div class="stat-body">
+      <div class="stat-value"><%= stats.totalPersons %></div>
+      <div class="stat-label">TOTAL REGISTERED</div>
+    </div>
+  </div>
+  <div class="stat-card stat-green">
+    <div class="stat-icon">◈</div>
+    <div class="stat-body">
+      <div class="stat-value"><%= stats.grantedScans %></div>
+      <div class="stat-label">ACCESS GRANTED</div>
+    </div>
+  </div>
+  <div class="stat-card stat-red">
+    <div class="stat-icon">◎</div>
+    <div class="stat-body">
+      <div class="stat-value"><%= stats.deniedScans %></div>
+      <div class="stat-label">ACCESS DENIED</div>
+    </div>
+  </div>
+  <div class="stat-card stat-warn">
+    <div class="stat-icon">◆</div>
+    <div class="stat-body">
+      <div class="stat-value"><%= stats.pendingUpgrades %></div>
+      <div class="stat-label">PENDING UPGRADES</div>
+    </div>
+  </div>
+</div>
+
+<!-- Person Type Breakdown -->
+<div class="dashboard-row">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">ATTENDEE BREAKDOWN</div>
+    </div>
+    <div class="type-breakdown">
+      <div class="type-row">
+        <span class="type-dot alumni"></span>
+        <span class="type-name">Alumni</span>
+        <div class="type-bar-wrap"><div class="type-bar" style="width:<%= stats.totalPersons ? (stats.totalAlumni/stats.totalPersons*100).toFixed(0) : 0 %>%"></div></div>
+        <span class="type-count"><%= stats.totalAlumni %></span>
+      </div>
+      <div class="type-row">
+        <span class="type-dot student"></span>
+        <span class="type-name">Students</span>
+        <div class="type-bar-wrap"><div class="type-bar" style="width:<%= stats.totalPersons ? (stats.totalStudents/stats.totalPersons*100).toFixed(0) : 0 %>%"></div></div>
+        <span class="type-count"><%= stats.totalStudents %></span>
+      </div>
+      <div class="type-row">
+        <span class="type-dot teacher"></span>
+        <span class="type-name">Teachers</span>
+        <div class="type-bar-wrap"><div class="type-bar" style="width:<%= stats.totalPersons ? (stats.totalTeachers/stats.totalPersons*100).toFixed(0) : 0 %>%"></div></div>
+        <span class="type-count"><%= stats.totalTeachers %></span>
+      </div>
+      <div class="type-row">
+        <span class="type-dot guest"></span>
+        <span class="type-name">Guests</span>
+        <div class="type-bar-wrap"><div class="type-bar" style="width:<%= stats.totalPersons ? (stats.totalGuests/stats.totalPersons*100).toFixed(0) : 0 %>%"></div></div>
+        <span class="type-count"><%= stats.totalGuests %></span>
+      </div>
+    </div>
+
+    <div class="panel-header" style="margin-top:28px">
+      <div class="panel-title">ZONE ACTIVITY</div>
+    </div>
+    <div class="zone-grid">
+      <% zoneStats.forEach(z => { %>
+      <div class="zone-card">
+        <div class="zone-name"><%= z._id.toUpperCase() %></div>
+        <div class="zone-total"><%= z.total %> scans</div>
+        <div class="zone-bar-wrap">
+          <div class="zone-bar-granted" style="width:<%= z.total ? (z.granted/z.total*100).toFixed(0) : 0 %>%"></div>
+        </div>
+        <div class="zone-meta"><span class="text-green"><%= z.granted %> ✓</span> / <span class="text-red"><%= z.total - z.granted %> ✗</span></div>
+      </div>
+      <% }) %>
+      <% if (!zoneStats.length) { %>
+      <div class="empty-note mono">No scan data yet.</div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Recent Logs -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">RECENT SCANS</div>
+      <a href="/admin/logs" class="panel-action">View All →</a>
+    </div>
+    <div class="recent-logs">
+      <% recentLogs.forEach(log => { %>
+      <div class="log-row">
+        <div class="log-status-dot <%= log.status === 'GRANTED' ? 'dot-green' : 'dot-red' %>"></div>
+        <div class="log-body">
+          <div class="log-name"><%= log.snapshot?.name || (log.personId?.name) || 'Unknown' %></div>
+          <div class="log-meta mono"><%= log.zoneCode.toUpperCase() %> · <%= log.scannerId %></div>
+        </div>
+        <div class="log-time mono"><%= new Date(log.timestamp).toLocaleTimeString() %></div>
+      </div>
+      <% }) %>
+      <% if (!recentLogs.length) { %>
+      <div class="empty-note mono">No scans recorded yet.</div>
+      <% } %>
+    </div>
+
+    <!-- Card status summary -->
+    <div class="panel-header" style="margin-top:28px">
+      <div class="panel-title">CARD STATUS</div>
+    </div>
+    <div class="card-status-row">
+      <div class="cs-item">
+        <div class="cs-val text-green"><%= stats.activePersons %></div>
+        <div class="cs-label">ACTIVE</div>
+      </div>
+      <div class="cs-item">
+        <div class="cs-val text-red"><%= stats.blockedCards %></div>
+        <div class="cs-label">BLOCKED</div>
+      </div>
+      <div class="cs-item">
+        <div class="cs-val text-warn"><%= stats.pendingUpgrades %></div>
+        <div class="cs-label">UPGRADING</div>
+      </div>
+      <div class="cs-item">
+        <div class="cs-val"><%= stats.totalScans %></div>
+        <div class="cs-label">TOTAL SCANS</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

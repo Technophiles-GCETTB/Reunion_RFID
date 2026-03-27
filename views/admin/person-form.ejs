@@ -1,0 +1,131 @@
+<%- include('../partials/header') %>
+
+<div class="form-page">
+  <div class="form-panel">
+    <% if (error) { %>
+    <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <form action="/admin/persons/<%= person ? person._id + '/edit' : 'add' %>" method="POST" class="main-form">
+
+      <!-- Basic Info -->
+      <div class="form-section">
+        <div class="form-section-title">BASIC INFORMATION</div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>FULL NAME *</label>
+            <input type="text" name="name" value="<%= person ? person.name : '' %>" placeholder="Full name" required>
+          </div>
+          <div class="form-group">
+            <label>PHONE NUMBER *</label>
+            <input type="text" name="phone" value="<%= person ? person.phone : '' %>" placeholder="+91 9876543210" required>
+          </div>
+          <div class="form-group">
+            <label>PERSON TYPE *</label>
+            <select name="type" required>
+              <option value="">-- Select Type --</option>
+              <% ['alumni','student','teacher','guest'].forEach(t => { %>
+              <option value="<%= t %>" <%= person && person.type === t ? 'selected' : '' %>><%= t.charAt(0).toUpperCase() + t.slice(1) %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>STATUS</label>
+            <select name="status">
+              <option value="active"   <%= !person || person.status === 'active'   ? 'selected' : '' %>>Active</option>
+              <option value="inactive" <%= person  && person.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+            </select>
+          </div>
+          <div class="form-group form-col-2">
+            <label>HOST (For Guests Only)</label>
+            <select name="broughtBy">
+              <option value="">-- None --</option>
+              <% hosts.forEach(h => { %>
+              <option value="<%= h._id %>" <%= person && person.broughtBy && person.broughtBy._id && person.broughtBy._id.toString() === h._id.toString() ? 'selected' : '' %>>
+                <%= h.name %> (<%= h.type %>) — <%= h.phone %>
+              </option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Permissions -->
+      <div class="form-section">
+        <div class="form-section-title">ZONE PERMISSIONS</div>
+        <div class="perm-grid">
+
+          <% const zones = [
+            { key: 'food',     label: 'Food Zone',     icon: '🍽️',  defaultLimit: 2 },
+            { key: 'cultural', label: 'Cultural Zone',  icon: '🎭',  defaultLimit: 1 },
+            { key: 'vip',      label: 'VIP Zone',       icon: '⭐',  defaultLimit: 1 },
+            { key: 'entry',    label: 'Entry Gate',     icon: '🚪',  defaultLimit: 1 }
+          ]; %>
+
+          <% zones.forEach(z => { %>
+          <div class="perm-card">
+            <div class="perm-card-header">
+              <span class="perm-icon"><%= z.icon %></span>
+              <span class="perm-label"><%= z.label %></span>
+              <label class="toggle">
+                <input type="checkbox" name="permissions.<%= z.key %>.allowed"
+                  <%= !person || person.permissions[z.key].allowed ? 'checked' : '' %>>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="perm-card-body">
+              <label>MAX USES</label>
+              <input type="number" name="permissions.<%= z.key %>.limit" min="1" max="99"
+                value="<%= person ? person.permissions[z.key].limit : z.defaultLimit %>">
+              <% if (person) { %>
+              <div class="used-info mono">Used: <%= person.permissions[z.key].used %> / <%= person.permissions[z.key].limit %></div>
+              <% } %>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- Meta -->
+      <div class="form-section">
+        <div class="form-section-title">ADDITIONAL INFO</div>
+        <div class="form-grid-2">
+          <div class="form-group form-col-2">
+            <label>ADDRESS</label>
+            <input type="text" name="address" value="<%= person ? person.meta.address : '' %>" placeholder="Home address">
+          </div>
+          <div class="form-group form-col-2">
+            <label>NOTES</label>
+            <textarea name="notes" rows="2" placeholder="Internal notes..."><%= person ? person.meta.notes : '' %></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Info (edit only) -->
+      <% if (person) { %>
+      <div class="form-section">
+        <div class="form-section-title">CARD INFORMATION</div>
+        <div class="card-info-display">
+          <div class="cid-row"><span class="cid-label">PERSON ID (store in RFID)</span><span class="cid-val mono"><%= person._id %></span></div>
+          <div class="cid-row"><span class="cid-label">CARD VERSION (store in RFID)</span><span class="cid-val mono">v<%= person.card.version %></span></div>
+          <div class="cid-row"><span class="cid-label">CARD STATUS</span>
+            <span class="cid-val">
+              <% if (person.card.isBlocked) { %><span class="badge badge-red">BLOCKED</span><% } else { %><span class="badge badge-green">ACTIVE</span><% } %>
+              <% if (person.card.pendingUpgrade) { %><span class="badge badge-warn">PENDING UPGRADE</span><% } %>
+            </span>
+          </div>
+        </div>
+      </div>
+      <% } %>
+
+      <div class="form-actions">
+        <a href="/admin/persons" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <%= person ? 'Save Changes' : 'Register Person' %> →
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

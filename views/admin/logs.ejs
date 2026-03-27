@@ -1,0 +1,85 @@
+<%- include('../partials/header') %>
+
+<div class="toolbar">
+  <form class="search-form" method="GET" action="/admin/logs">
+    <select name="zone">
+      <option value="">All Zones</option>
+      <% ['entry','food','cultural','vip'].forEach(z => { %>
+      <option value="<%= z %>" <%= query.zone === z ? 'selected' : '' %>><%= z.toUpperCase() %></option>
+      <% }) %>
+    </select>
+    <select name="status">
+      <option value="">All Status</option>
+      <option value="GRANTED" <%= query.status === 'GRANTED' ? 'selected' : '' %>>GRANTED</option>
+      <option value="DENIED"  <%= query.status === 'DENIED'  ? 'selected' : '' %>>DENIED</option>
+    </select>
+    <button type="submit" class="btn btn-sm">Filter</button>
+    <a href="/admin/logs" class="btn btn-sm btn-ghost">Clear</a>
+  </form>
+  <div class="log-count-badge mono"><%= total %> records</div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">ACCESS LOGS <span class="count-badge"><%= total %></span></div>
+    <div class="immutable-note">🔒 Immutable — logs cannot be edited or deleted</div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>STATUS</th>
+          <th>PERSON</th>
+          <th>ZONE</th>
+          <th>SCANNER ID</th>
+          <th>REASON</th>
+          <th>TIMESTAMP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!logs.length) { %>
+        <tr><td colspan="6" class="empty-cell">No logs found.</td></tr>
+        <% } %>
+        <% logs.forEach(log => { %>
+        <tr>
+          <td>
+            <span class="badge <%= log.status === 'GRANTED' ? 'badge-green' : 'badge-red' %>">
+              <%= log.status %>
+            </span>
+          </td>
+          <td>
+            <% if (log.personId) { %>
+            <div class="person-mini">
+              <a href="/admin/persons/<%= log.personId._id %>" class="fw-600"><%= log.snapshot?.name || log.personId.name %></a>
+              <span class="badge badge-<%= log.snapshot?.type || log.personId.type %> badge-xs"><%= (log.snapshot?.type || log.personId.type || '').toUpperCase() %></span>
+            </div>
+            <% } else { %>
+            <span class="text-muted mono text-xs"><%= log.personId %></span>
+            <% } %>
+          </td>
+          <td><span class="zone-pill zone-<%= log.zoneCode %>"><%= log.zoneCode.toUpperCase() %></span></td>
+          <td class="mono text-xs"><%= log.scannerId %></td>
+          <td class="text-muted text-xs"><%= log.reason || '—' %></td>
+          <td class="mono text-xs"><%= new Date(log.timestamp).toLocaleString() %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <% if (totalPages > 1) { %>
+  <div class="pagination">
+    <% if (page > 1) { %>
+    <a href="/admin/logs?page=<%= page-1 %>&zone=<%= query.zone||'' %>&status=<%= query.status||'' %>" class="page-btn">← Prev</a>
+    <% } %>
+    <span class="page-info mono">Page <%= page %> of <%= totalPages %></span>
+    <% if (page < totalPages) { %>
+    <a href="/admin/logs?page=<%= page+1 %>&zone=<%= query.zone||'' %>&status=<%= query.status||'' %>" class="page-btn">Next →</a>
+    <% } %>
+  </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

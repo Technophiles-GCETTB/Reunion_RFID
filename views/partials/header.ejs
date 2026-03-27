@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — RFID Reunion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⬡</div>
+      <div>
+        <div class="brand-name">REUNION</div>
+        <div class="brand-sub">RFID SYSTEM</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">MAIN</div>
+      <a href="/admin/dashboard" class="nav-link <%= currentPath === '/dashboard' ? 'active' : '' %>">
+        <span class="nav-icon">◈</span> Dashboard
+      </a>
+      <a href="/admin/persons" class="nav-link <%= currentPath.startsWith('/persons') ? 'active' : '' %>">
+        <span class="nav-icon">◉</span> Persons
+      </a>
+      <a href="/admin/logs" class="nav-link <%= currentPath === '/logs' ? 'active' : '' %>">
+        <span class="nav-icon">◎</span> Access Logs
+      </a>
+
+      <% if (writerModule) { %>
+      <div class="nav-section-label" style="margin-top:20px">HARDWARE</div>
+      <a href="http://<%= writerModule.ip.replace(/^https?:\/\//, '') %>"
+         target="_blank"
+         class="nav-link nav-link-writer">
+        <span class="nav-icon">✏️</span>
+        <span><%= writerModule.name %></span>
+        <span class="writer-ext-icon">↗</span>
+      </a>
+      <% } %>
+
+      <% if (isSuperAdmin) { %>
+      <div class="nav-section-label" style="margin-top:20px">SUPER ADMIN</div>
+      <a href="/admin/upgrades" class="nav-link <%= currentPath === '/upgrades' ? 'active' : '' %>">
+        <span class="nav-icon">◆</span> Card Upgrades
+      </a>
+      <a href="/admin/zones" class="nav-link <%= currentPath === '/zones' ? 'active' : '' %>">
+        <span class="nav-icon">◐</span> Zone Manager
+      </a>
+      <a href="/admin/bulk-import" class="nav-link <%= currentPath.startsWith('/bulk-import') ? 'active' : '' %>">
+        <span class="nav-icon">⊞</span> Bulk Import
+      </a>
+      <a href="/admin/admins" class="nav-link <%= currentPath === '/admins' ? 'active' : '' %>">
+        <span class="nav-icon">⊕</span> Admin Accounts
+      </a>
+      <a href="/admin/writer-modules" class="nav-link <%= currentPath === '/writer-modules' ? 'active' : '' %>">
+        <span class="nav-icon">✏️</span> Writer Modules
+      </a>
+      <% } %>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-info">
+        <div class="admin-avatar"><%= admin ? admin.name[0].toUpperCase() : 'A' %></div>
+        <div>
+          <div class="admin-name"><%= admin ? admin.name : 'Admin' %></div>
+          <div class="admin-role"><%= admin ? admin.role.toUpperCase() : '' %></div>
+        </div>
+      </div>
+      <a href="/admin/logout" class="logout-btn">↗ Logout</a>
+    </div>
+  </aside>
+  <main class="main-content">
+    <div class="topbar">
+      <h1 class="page-title"><%= title %></h1>
+      <div class="topbar-right">
+        <% if (writerModule) { %>
+        <a href="http://<%= writerModule.ip.replace(/^https?:\/\//, '') %>"
+           target="_blank" class="topbar-writer-btn">
+          ✏️ <%= writerModule.name %> ↗
+        </a>
+        <% } %>
+        <div class="live-indicator"><span class="pulse"></span> LIVE</div>
+      </div>
+    </div>
+    <% if (typeof query !== 'undefined' && query.success) { %>
+    <div class="alert alert-success"><%= query.success %></div>
+    <% } %>
+    <% if (typeof query !== 'undefined' && query.error) { %>
+    <div class="alert alert-error"><%= query.error %></div>
+    <% } %>
+    <div class="content-area">

@@ -1,0 +1,221 @@
+<%- include('../partials/header') %>
+
+<div class="bulk-layout">
+
+  <!-- LEFT: Import Form -->
+  <div class="bulk-left">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">⊞ BULK DATA IMPORT</div>
+        <div class="superadmin-badge">⭐ SUPER ADMIN</div>
+      </div>
+
+      <% if (error) { %>
+      <div class="alert alert-error" style="margin:16px 20px 0"><%= error %></div>
+      <% } %>
+
+      <form action="/admin/bulk-import/process" method="POST" id="importForm" style="padding:20px">
+
+        <!-- Format selector -->
+        <div class="format-tabs">
+          <button type="button" class="fmt-tab active" onclick="setFormat('csv', this)">CSV Format</button>
+          <button type="button" class="fmt-tab" onclick="setFormat('json', this)">JSON Format</button>
+        </div>
+        <input type="hidden" name="format" id="formatField" value="csv">
+
+        <!-- Template hint -->
+        <div class="template-box" id="csvTemplate">
+          <div class="tb-label">CSV TEMPLATE — copy this header row:</div>
+          <code class="tb-code">name,phone,type,address,notes</code>
+          <div class="tb-label" style="margin-top:8px">EXAMPLE ROWS:</div>
+          <code class="tb-code">Arjun Mehta,9876543210,alumni,Mumbai,Batch 1995
+Priya Sharma,9123456789,student,,Final year
+Prof. Nair,9988776655,teacher,Campus,HOD CS</code>
+          <div class="tb-note">Types: <strong>alumni</strong> · <strong>student</strong> · <strong>teacher</strong> · <strong>guest</strong></div>
+        </div>
+
+        <div class="template-box" id="jsonTemplate" style="display:none">
+          <div class="tb-label">JSON TEMPLATE:</div>
+          <code class="tb-code">[
+  {"name":"Arjun Mehta","phone":"9876543210","type":"alumni","address":"Mumbai"},
+  {"name":"Priya Sharma","phone":"9123456789","type":"student"}
+]</code>
+        </div>
+
+        <!-- Data textarea -->
+        <div class="form-group" style="margin:16px 0">
+          <label>PASTE YOUR DATA *</label>
+          <textarea name="rawData" id="rawData" rows="10"
+            placeholder="Paste CSV rows or JSON array here..."
+            style="font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical"></textarea>
+        </div>
+
+        <!-- Options row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+          <div class="form-group">
+            <label>DEFAULT TYPE (if not in data)</label>
+            <select name="defaultType">
+              <option value="alumni">Alumni</option>
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="guest">Guest</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end">
+            <label>SKIP DUPLICATE PHONES</label>
+            <label class="toggle" style="margin-top:8px">
+              <input type="checkbox" name="skipDuplicates" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Zone permissions for import -->
+        <div class="form-section-title" style="margin-bottom:12px">DEFAULT ZONE PERMISSIONS FOR IMPORTED PERSONS</div>
+        <div class="import-zones-grid">
+          <% zones.forEach(z => { %>
+          <div class="import-zone-card">
+            <div class="izc-header">
+              <span style="color:<%= z.color %>"><%= z.icon %></span>
+              <span class="izc-name"><%= z.name %></span>
+              <label class="toggle">
+                <input type="checkbox" name="zone_<%= z.code %>_allowed" <%= z.defaultAllowed ? 'checked' : '' %>>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="izc-limit">
+              <label style="font-size:9px;letter-spacing:2px;color:var(--text-3);font-family:monospace">LIMIT</label>
+              <input type="number" name="zone_<%= z.code %>_limit" value="<%= z.defaultLimit %>" min="1" max="99"
+                     style="width:60px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:4px 8px;font-family:monospace;font-size:12px;outline:none">
+            </div>
+          </div>
+          <% }) %>
+          <% if (!zones.length) { %>
+          <div class="text-muted mono" style="font-size:12px;grid-column:span 2">No active zones found. <a href="/admin/zones">Create zones first</a>.</div>
+          <% } %>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button type="button" class="btn btn-ghost" onclick="previewData()">👁 Preview</button>
+          <button type="submit" class="btn btn-primary" style="flex:1">⊞ Import All</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Preview box -->
+    <div class="panel" id="previewPanel" style="margin-top:16px;display:none">
+      <div class="panel-header">
+        <div class="panel-title">DATA PREVIEW</div>
+        <div id="previewCount" class="mono" style="font-size:12px;color:var(--text-2)"></div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="previewTable">
+          <thead>
+            <tr>
+              <th>ROW</th><th>NAME</th><th>PHONE</th><th>TYPE</th><th>ADDRESS</th>
+            </tr>
+          </thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+      <div id="previewNote" class="mono" style="font-size:11px;color:var(--text-2);padding:10px 20px"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Recent imports -->
+  <div class="bulk-right">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">RECENT IMPORTS</div>
+      </div>
+
+      <% if (!recentImports.length) { %>
+      <div class="empty-state" style="padding:40px">
+        <div class="empty-icon">⊞</div>
+        <div class="empty-title">No Imports Yet</div>
+        <div class="empty-sub mono">Your import history will appear here.</div>
+      </div>
+      <% } %>
+
+      <div style="padding:12px">
+        <% recentImports.forEach(imp => { %>
+        <div class="import-history-card">
+          <div class="ihc-top">
+            <div>
+              <div class="ihc-date mono"><%= new Date(imp.createdAt).toLocaleString() %></div>
+              <div class="ihc-by">by <%= imp.importedBy?.name || 'Unknown' %></div>
+            </div>
+            <span class="badge <%= imp.status === 'done' ? 'badge-green' : imp.status === 'failed' ? 'badge-red' : 'badge-warn' %>">
+              <%= imp.status.toUpperCase() %>
+            </span>
+          </div>
+          <div class="ihc-stats">
+            <span class="text-green">✓ <%= imp.successCount %></span>
+            <span class="text-red">✗ <%= imp.failedCount %></span>
+            <span class="text-muted">⟳ <%= imp.skippedCount %> skipped</span>
+            <span class="text-muted">/ <%= imp.totalRows %> total</span>
+          </div>
+          <a href="/admin/bulk-import/result/<%= imp._id %>" class="btn btn-xs btn-ghost" style="margin-top:8px">View Report →</a>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Tips panel -->
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-header"><div class="panel-title">IMPORT TIPS</div></div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--text-2);line-height:1.6">
+        <div>📋 <strong>CSV header</strong> row is required. Column order doesn't matter.</div>
+        <div>📞 <strong>Phone</strong> must be unique per person. Duplicates are skipped or rejected.</div>
+        <div>🏷️ <strong>Type</strong> column values: alumni, student, teacher, guest.</div>
+        <div>🔑 Cards are <strong>not written</strong> during import — use the ESP8266 writer after importing.</div>
+        <div>🔒 Zone permissions set here apply to <strong>all rows</strong>. Edit individual persons after import for custom limits.</div>
+        <div>📄 Max recommended: <strong>500 rows</strong> per import batch.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function setFormat(fmt, btn) {
+  document.getElementById('formatField').value = fmt;
+  document.querySelectorAll('.fmt-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('csvTemplate').style.display  = fmt === 'csv'  ? 'block' : 'none';
+  document.getElementById('jsonTemplate').style.display = fmt === 'json' ? 'block' : 'none';
+}
+
+async function previewData() {
+  const raw    = document.getElementById('rawData').value.trim();
+  const format = document.getElementById('formatField').value;
+  if (!raw) { alert('Paste some data first'); return; }
+
+  const res  = await fetch('/admin/bulk-import/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'rawData=' + encodeURIComponent(raw) + '&format=' + format
+  });
+  const data = await res.json();
+
+  if (!data.success) { alert('Parse error: ' + data.message); return; }
+
+  document.getElementById('previewPanel').style.display = 'block';
+  document.getElementById('previewCount').textContent   = data.total + ' rows detected';
+  document.getElementById('previewNote').textContent    = data.total > 5 ? `Showing first 5 of ${data.total} rows` : '';
+
+  const tbody = document.getElementById('previewBody');
+  tbody.innerHTML = data.preview.map(r => `
+    <tr>
+      <td class="mono">${r.row}</td>
+      <td>${r.name || '<span class="text-red">MISSING</span>'}</td>
+      <td class="mono">${r.phone || '<span class="text-red">MISSING</span>'}</td>
+      <td><span class="badge badge-${r.type || 'guest'}">${(r.type || '—').toUpperCase()}</span></td>
+      <td class="text-muted">${r.address || '—'}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('previewPanel').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+
+<%- include('../partials/footer') %>
